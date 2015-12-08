@@ -17,4 +17,6 @@ commands:
     container: ns3
     accepts-arguments: true
     work-dir: /work/workspace/ns3-allinone
-    run: ./waf "$@"
+    run: |
+        ./waf "$@"
+        mv *.pcap /work
