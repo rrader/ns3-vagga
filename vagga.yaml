@@ -1,0 +1,20 @@
+containers:
+  ns3:
+    setup:
+    - !Ubuntu trusty
+    - !UbuntuUniverse
+    - !Install [wget, gcc, g++, python, mercurial, ca-certificates, flex, bison]
+
+commands:
+
+  setup: !Command
+    description: Compiles NS3 on host directory
+    container: ns3
+    run: bash setup.sh
+
+  waf: !Command
+    description: waf
+    container: ns3
+    accepts-arguments: true
+    work-dir: /work/workspace/ns3-allinone
+    run: ./waf "$@"
