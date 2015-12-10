@@ -20,3 +20,11 @@ commands:
     run: |
         ./waf "$@"
         mv *.pcap /work
+
+  network: !Command
+    description: run my simulation from scratch/network.cc
+    container: ns3
+    work-dir: /work/workspace/ns3-allinone
+    run: |
+        ./waf --run 'scratch/network'
+        mv *.pcap /work
