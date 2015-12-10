@@ -218,7 +218,7 @@ int main (int argc, char *argv[])
 {
   NS_LOG_UNCOND ("> Parse configuration");
   Config::SetDefault ("ns3::OnOffApplication::PacketSize", UintegerValue (512));
-  Config::SetDefault ("ns3::OnOffApplication::DataRate", StringValue ("1Mbps"));
+  Config::SetDefault ("ns3::OnOffApplication::DataRate", StringValue ("1kbps"));
   // Config::SetDefault ("ns3::TcpL4Protocol::SocketType", TypeIdValue (TcpScalable::GetTypeId()));
   Config::SetDefault ("ns3::TcpSocket::SegmentSize",  UintegerValue(1000));
 
@@ -247,10 +247,11 @@ int main (int argc, char *argv[])
   PointToPointHelper p2pBackbone;
   // create point-to-point link with a bandwidth of 6MBit/s and a large delay (0.5 seconds)
   // p2pBackbone.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (6 * 1000 * 1000)));
-  // p2pBackbone.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (500)));
+  p2pBackbone.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
 
   InternetStackHelper internet;
   internet.Install (internetNodes);
+  Ipv4InterfaceContainer ipv4InterfacesInternet[4];
 
   for (int i=0; i<internetNodesCount; i++) {
     int j = i + 1;
@@ -266,9 +267,9 @@ int main (int argc, char *argv[])
     Ipv4AddressHelper ipv4;
     std::string baseIp = SSTR(i + 1) + std::string(".0.0.0");
     ipv4.SetBase (baseIp.c_str(), "255.255.255.0");
-    Ipv4InterfaceContainer ipv4Interfaces = ipv4.Assign (p2pInterfaces);
+    ipv4InterfacesInternet[i] = ipv4.Assign (p2pInterfaces);
     NS_LOG_UNCOND (">>> Connect " << i << " and " << j << ": " <<
-                    ipv4Interfaces.GetAddress(0) << "@" << internetNodes.Get (i)->GetId() << " => " << ipv4Interfaces.GetAddress(1) << "@" << internetNodes.Get (j)->GetId());
+                    ipv4InterfacesInternet[i].GetAddress(0) << "@" << internetNodes.Get (i)->GetId() << " => " << ipv4InterfacesInternet[i].GetAddress(1) << "@" << internetNodes.Get (j)->GetId());
   }
 
   NS_LOG_UNCOND ("> TCP Congestion control algorighm: " << tcpCong);
@@ -277,12 +278,12 @@ int main (int argc, char *argv[])
   PointToPointHelper p2pInternetProvider;
   // create point-to-point link with a bandwidth of 6MBit/s and a large delay (0.5 seconds)
   // p2pInternetProvider.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (6 * 1000 * 1000)));
-  // p2pInternetProvider.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (500)));
+  p2pInternetProvider.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (10)));
 
   PointToPointHelper p2pEndpoint;
   // create point-to-point link with a bandwidth of 6MBit/s and a large delay (0.5 seconds)
   // p2pEndpoint.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (6 * 1000 * 1000)));
-  // p2pEndpoint.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (500)));
+  p2pEndpoint.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (20)));
 
   const int nodesInStar = 2;
   PointToPointStarHelper star1 = PointToPointStarHelper(nodesInStar, p2pEndpoint);
@@ -290,6 +291,7 @@ int main (int argc, char *argv[])
   PointToPointStarHelper starNetworks[2] = {star1, star2};
 
   Ipv4AddressHelper ipv4StarNetworks[2];
+  Ipv4InterfaceContainer ipv4InterfacesStarNetworks[2];
 
   NS_LOG_UNCOND ("> Create networks");
   for (int i=0, starId=0; i<internetNodesCount; i+=2, starId++) {
@@ -303,9 +305,9 @@ int main (int argc, char *argv[])
     NetDeviceContainer p2pInterfaces = p2pInternetProvider.Install(twoNodes);
     baseIp = SSTR(i + 1) + std::string(".1.0.0");
     ipv4StarNetworks[starId].SetBase (baseIp.c_str(), "255.255.255.0");
-    Ipv4InterfaceContainer ipv4Interfaces = ipv4StarNetworks[starId].Assign (p2pInterfaces);
-    NS_LOG_UNCOND (">>> Connect star hub " << ipv4Interfaces.GetAddress(1) << " @" << starNetworks[starId].GetHub ()->GetId() <<
-                   " to internet node " << ipv4Interfaces.GetAddress(0) << " @" << internetNodes.Get (i)->GetId());
+    ipv4InterfacesStarNetworks[starId] = ipv4StarNetworks[starId].Assign (p2pInterfaces);
+    NS_LOG_UNCOND (">>> Connect star hub " << ipv4InterfacesStarNetworks[starId].GetAddress(1) << " @" << starNetworks[starId].GetHub ()->GetId() <<
+                   " to internet node " << ipv4InterfacesStarNetworks[starId].GetAddress(0) << " @" << internetNodes.Get (i)->GetId());
   }
 
   for (int i=1; i<internetNodesCount; i+=2) {
@@ -342,10 +344,14 @@ int main (int argc, char *argv[])
   PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), servPort));
 
   //============================
-  // ns3::Ptr<ns3::Node> receiverNode = starNetworks[1].GetSpokeNode(0);
-  // Ipv4Address receiverAddr = starNetworks[1].GetSpokeIpv4Address(0);
-  ns3::Ptr<ns3::Node> receiverNode = starNetworks[0].GetSpokeNode(1);
-  Ipv4Address receiverAddr = starNetworks[0].GetSpokeIpv4Address(1);
+  // ns3::Ptr<ns3::Node> receiverNode = internetNodes.Get(1);
+  // Ipv4Address receiverAddr = ipv4InterfacesInternet[0].GetAddress(1);
+  // ns3::Ptr<ns3::Node> receiverNode = internetNodes.Get(0);
+  // Ipv4Address receiverAddr = ipv4InterfacesStarNetworks[0].GetAddress(0);
+  // ns3::Ptr<ns3::Node> receiverNode = starNetworks[0].GetHub();
+  // Ipv4Address receiverAddr = starNetworks[0].GetHubIpv4Address(0);
+  ns3::Ptr<ns3::Node> receiverNode = starNetworks[1].GetSpokeNode(0);
+  Ipv4Address receiverAddr = starNetworks[1].GetSpokeIpv4Address(0);
 
   ns3::Ptr<ns3::Node> senderNode = starNetworks[0].GetSpokeNode(0);
   Ipv4Address senderAddr = starNetworks[0].GetSpokeIpv4Address(0);
@@ -378,11 +384,17 @@ int main (int argc, char *argv[])
   Config::Set ("/NodeList/*/$ns3::TcpL4Protocol/SocketType", TypeIdValue (tid));
   Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (senderNode, /*tid*/ TcpSocketFactory::GetTypeId ());
 
-  Ptr<MyApp> app = CreateObject<MyApp> ();
-  app->Setup (ns3TcpSocket, remoteAddress, 1000, 100000000, DataRate ("1Mbps"));
-  senderNode->AddApplication (app);
-  app->SetStartTime (Seconds (0.2));
-  app->SetStopTime (Seconds (60.0));
+  // Ptr<MyApp> app = CreateObject<MyApp> ();
+  OnOffHelper clientHelper ("ns3::TcpSocketFactory", remoteAddress);
+  clientHelper.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
+  clientHelper.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
+  // app->Setup (ns3TcpSocket, remoteAddress, 1000, 100000000, DataRate ("1Mbps"));
+  // senderNode->AddApplication (app);
+  ApplicationContainer clientApp = clientHelper.Install (senderNode);
+  // app->SetStartTime (Seconds (0.2));
+  // app->SetStopTime (Seconds (60.0));
+  clientApp.Start(Seconds(0.2));
+  clientApp.Stop(Seconds(runtime-2));
 
 
 
@@ -413,7 +425,7 @@ int main (int argc, char *argv[])
   p2pEndpoint.EnablePcapAll ("coursework");
 
   FlowMonitorHelper flowmon;
-  Ptr<FlowMonitor> monitor = flowmon.Install( starNetworks[1].GetSpokeNode(0) );
+  Ptr<FlowMonitor> monitor = flowmon.Install( starNetworks[0].GetSpokeNode(0) );
 
   // sinkApp.Start (Seconds (0.0));
   // // this makes sure that the receiver will run one minute longer than the sender applicaton.
