@@ -28,3 +28,4 @@ commands:
     run: |
         ./waf --run 'scratch/network'
         mv *.pcap /work
+        mv *.xml /work

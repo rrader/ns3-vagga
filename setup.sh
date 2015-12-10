@@ -27,3 +27,6 @@ cd /work
 
 rm -rf workspace/ns3-allinone/scratch
 ln -sf /work/scratch workspace/ns3-allinone/scratch
+ln -sf /work/model/* workspace/ns3-allinone/src/internet/model
+echo "    obj.source.append('model/tcp-scalable.cc')" >> workspace/ns3-allinone/src/internet/wscript
+echo "    headers.source.append('model/tcp-scalable.h')" >> workspace/ns3-allinone/src/internet/wscript

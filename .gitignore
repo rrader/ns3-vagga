@@ -2,3 +2,4 @@
 .vagga
 workspace
 *.pcap
+*.xml
