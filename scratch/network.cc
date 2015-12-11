@@ -195,7 +195,7 @@ MyApp::ScheduleTx (void)
   if (m_running)
     {
       Time tNext (Seconds (m_packetSize * 8 / static_cast<double> (m_dataRate.GetBitRate ())));
-      NS_LOG_INFO("Send next packet at: " << tNext);
+      NS_LOG_UNCOND("Send next packet at: " << tNext);
       m_sendEvent = Simulator::Schedule (tNext, &MyApp::SendPacket, this);
     }
 }
@@ -218,7 +218,7 @@ int main (int argc, char *argv[])
 {
   NS_LOG_UNCOND ("> Parse configuration");
   Config::SetDefault ("ns3::OnOffApplication::PacketSize", UintegerValue (512));
-  Config::SetDefault ("ns3::OnOffApplication::DataRate", StringValue ("1kbps"));
+  // Config::SetDefault ("ns3::OnOffApplication::DataRate", StringValue ("1Mbps"));
   // Config::SetDefault ("ns3::TcpL4Protocol::SocketType", TypeIdValue (TcpScalable::GetTypeId()));
   Config::SetDefault ("ns3::TcpSocket::SegmentSize",  UintegerValue(1000));
 
@@ -245,8 +245,7 @@ int main (int argc, char *argv[])
   internetNodes.Create (internetNodesCount);
 
   PointToPointHelper p2pBackbone;
-  // create point-to-point link with a bandwidth of 6MBit/s and a large delay (0.5 seconds)
-  // p2pBackbone.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (6 * 1000 * 1000)));
+  p2pBackbone.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("1Mbps")));
   p2pBackbone.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
 
   InternetStackHelper internet;
@@ -277,15 +276,17 @@ int main (int argc, char *argv[])
 
   PointToPointHelper p2pInternetProvider;
   // create point-to-point link with a bandwidth of 6MBit/s and a large delay (0.5 seconds)
+  p2pInternetProvider.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("1Mbps")));
   // p2pInternetProvider.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (6 * 1000 * 1000)));
-  p2pInternetProvider.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (10)));
+  p2pInternetProvider.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (50)));
 
   PointToPointHelper p2pEndpoint;
   // create point-to-point link with a bandwidth of 6MBit/s and a large delay (0.5 seconds)
   // p2pEndpoint.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (6 * 1000 * 1000)));
-  p2pEndpoint.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (20)));
+  p2pEndpoint.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("1Mbps")));
+  p2pEndpoint.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (100)));
 
-  const int nodesInStar = 2;
+  const int nodesInStar = 3;
   PointToPointStarHelper star1 = PointToPointStarHelper(nodesInStar, p2pEndpoint);
   PointToPointStarHelper star2 = PointToPointStarHelper(nodesInStar, p2pEndpoint);
   PointToPointStarHelper starNetworks[2] = {star1, star2};
@@ -323,8 +324,8 @@ int main (int argc, char *argv[])
     std::string baseIp = SSTR(i + 1) + std::string(".1.0.0");
     ipv4.SetBase (baseIp.c_str(), "255.255.255.0");
     Ipv4InterfaceContainer ipv4Interfaces = ipv4.Assign (p2pInterfaces);
-    NS_LOG_UNCOND (">>> Connect cloud hub " << ipv4Interfaces.GetAddress(1)  << " @" << internetNodes.Get (i)->GetId() <<
-                   " to internet node " << ipv4Interfaces.GetAddress(0) << " @" << cloud.Get (0)->GetId());
+    NS_LOG_UNCOND (">>> Connect cloud hub " << ipv4Interfaces.GetAddress(1)  << " @" << cloud.Get (0)->GetId() <<
+                   " to internet node " << ipv4Interfaces.GetAddress(0) << " @" << internetNodes.Get (i)->GetId());
   }
 
   NS_LOG_UNCOND ("> Setup traffic");
@@ -384,19 +385,25 @@ int main (int argc, char *argv[])
   Config::Set ("/NodeList/*/$ns3::TcpL4Protocol/SocketType", TypeIdValue (tid));
   Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (senderNode, /*tid*/ TcpSocketFactory::GetTypeId ());
 
+  //-------------
+  // OnOffHelper clientHelper ("ns3::TcpSocketFactory", remoteAddress);
+  // clientHelper.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
+  // clientHelper.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
+  // ApplicationContainer clientApp = clientHelper.Install (senderNode);
+  // clientApp.Start(Seconds(0.2));
+  // clientApp.Stop(Seconds(runtime-2));
+  //-------------
   // Ptr<MyApp> app = CreateObject<MyApp> ();
-  OnOffHelper clientHelper ("ns3::TcpSocketFactory", remoteAddress);
-  clientHelper.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
-  clientHelper.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
   // app->Setup (ns3TcpSocket, remoteAddress, 1000, 100000000, DataRate ("1Mbps"));
   // senderNode->AddApplication (app);
-  ApplicationContainer clientApp = clientHelper.Install (senderNode);
   // app->SetStartTime (Seconds (0.2));
   // app->SetStopTime (Seconds (60.0));
-  clientApp.Start(Seconds(0.2));
+  //-------------
+  BulkSendHelper clientHelper ("ns3::TcpSocketFactory", remoteAddress);
+  clientHelper.SetAttribute ("MaxBytes", UintegerValue (0));
+  ApplicationContainer clientApp = clientHelper.Install (senderNode);
+  clientApp.Start(Seconds(1));
   clientApp.Stop(Seconds(runtime-2));
-
-
 
 
 

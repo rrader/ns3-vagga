@@ -3,7 +3,16 @@ containers:
     setup:
     - !Ubuntu trusty
     - !UbuntuUniverse
-    - !Install [wget, gcc, g++, python, mercurial, ca-certificates, flex, bison]
+    - !Install [wget, gcc, g++, python, mercurial, ca-certificates, flex, bison, python-dev, python-kiwi, python-pygoocanvas, python-pygraphviz]
+
+    volumes:
+      /tmp: !Tmpfs
+        size: 100Mi
+        mode: 0o1777
+        subdirs:
+          .X11-unix:
+      /tmp/.X11-unix: !BindRW /tmp/.X11-unix
+    environ: { DISPLAY: ":0" }
 
 commands:
 
@@ -26,6 +35,15 @@ commands:
     container: ns3
     work-dir: /work/workspace/ns3-allinone
     run: |
-        ./waf --run 'scratch/network'
+        ./waf --run 'scratch/network' 
+        mv *.pcap /work
+        mv *.xml /work
+
+  wnetwork: !Command
+    description: run my simulation from scratch/network.cc
+    container: ns3
+    work-dir: /work/workspace/ns3-allinone
+    run: |
+        ./waf --run 'scratch/network' --visualize
         mv *.pcap /work
         mv *.xml /work
