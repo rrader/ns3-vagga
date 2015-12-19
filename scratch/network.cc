@@ -253,7 +253,7 @@ int main (int argc, char *argv[])
   internet.Install (internetNodes);
   Ipv4InterfaceContainer ipv4InterfacesInternet[4];
 
-  for (int i=0; i<internetNodesCount-1; i++) {
+  for (int i=0; i<internetNodesCount; i++) {
     int j = i + 1;
     if (j >= internetNodesCount) j = 0;
     NodeContainer twoNodes = NodeContainer (internetNodes.Get (i), internetNodes.Get (j));
