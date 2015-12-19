@@ -57,9 +57,9 @@ protected:
   virtual void NewAck (SequenceNumber32 const& seq); // Inc cwnd and call NewAck() of parent
   virtual void DupAck (const TcpHeader& t, uint32_t count);  // Treat 3 dupack as timeout
   virtual void Retransmit (void); // Retransmit time out
-
+  virtual void     SetInitialSSThresh (uint32_t threshold);
 protected:
-  uint32_t               m_retxThresh;   //!< Fast Retransmit threshold
+  uint32_t               m_successfulAckCount;
 };
 
 } // namespace ns3

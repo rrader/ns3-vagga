@@ -184,6 +184,7 @@ MyApp::SendPacket (void)
     {
       std::cout << "Done sending packets: " << m_packetsSent;
     }
+  NS_LOG_UNCOND ("Packet sent");
 }
 
 /**
@@ -228,7 +229,7 @@ int main (int argc, char *argv[])
   // byte being 'corrupted' during transfer.
   double errRate = 0.000001;
   // how long the sender should be running, in seconds.
-  unsigned int runtime = 30;
+  unsigned int runtime = 90;
 
   CommandLine cmd;
   // Here, we define additional command line options.
@@ -252,7 +253,7 @@ int main (int argc, char *argv[])
   internet.Install (internetNodes);
   Ipv4InterfaceContainer ipv4InterfacesInternet[4];
 
-  for (int i=0; i<internetNodesCount; i++) {
+  for (int i=0; i<internetNodesCount-1; i++) {
     int j = i + 1;
     if (j >= internetNodesCount) j = 0;
     NodeContainer twoNodes = NodeContainer (internetNodes.Get (i), internetNodes.Get (j));
@@ -278,13 +279,13 @@ int main (int argc, char *argv[])
   // create point-to-point link with a bandwidth of 6MBit/s and a large delay (0.5 seconds)
   p2pInternetProvider.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("1Mbps")));
   // p2pInternetProvider.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (6 * 1000 * 1000)));
-  p2pInternetProvider.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (50)));
+  p2pInternetProvider.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
 
   PointToPointHelper p2pEndpoint;
   // create point-to-point link with a bandwidth of 6MBit/s and a large delay (0.5 seconds)
   // p2pEndpoint.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (6 * 1000 * 1000)));
   p2pEndpoint.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("1Mbps")));
-  p2pEndpoint.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (100)));
+  p2pEndpoint.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
 
   const int nodesInStar = 3;
   PointToPointStarHelper star1 = PointToPointStarHelper(nodesInStar, p2pEndpoint);
@@ -383,7 +384,8 @@ int main (int argc, char *argv[])
 
   TypeId tid = TypeId::LookupByName ("ns3::TcpScalable");
   Config::Set ("/NodeList/*/$ns3::TcpL4Protocol/SocketType", TypeIdValue (tid));
-  Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (senderNode, /*tid*/ TcpSocketFactory::GetTypeId ());
+  // Config::Set ("/NodeList/*/$ns3::TcpSocketBase/SlowStartThreshold", UintegerValue(2621400));
+  // Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (senderNode, /*tid*/ TcpSocketFactory::GetTypeId ());
 
   //-------------
   // OnOffHelper clientHelper ("ns3::TcpSocketFactory", remoteAddress);
