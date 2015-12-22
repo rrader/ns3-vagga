@@ -15,17 +15,6 @@
  *
  */
 
-//
-// Network topology
-//
-//           6Mb/s, 500ms
-//       n0-----------------n1
-//
-// - a 'lossy' network with long delay
-// - TCP flow from n0 to n1 and from n1 to n0
-// - pcap traces generated as tcp-nsc-lfn-0-0.pcap and tcp-nsc-lfn-1-0.pcap
-//  Usage (e.g.): ./waf --run 'tcp-nsc-lfn --TCP_CONGESTION=hybla --runtime=30'
-
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -229,7 +218,7 @@ int main (int argc, char *argv[])
   // byte being 'corrupted' during transfer.
   double errRate = 0.000001;
   // how long the sender should be running, in seconds.
-  unsigned int runtime = 90;
+  unsigned int runtime = 300;
 
   CommandLine cmd;
   // Here, we define additional command line options.
@@ -246,7 +235,7 @@ int main (int argc, char *argv[])
   internetNodes.Create (internetNodesCount);
 
   PointToPointHelper p2pBackbone;
-  p2pBackbone.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("1Mbps")));
+  p2pBackbone.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("1Gbps")));
   p2pBackbone.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
 
   InternetStackHelper internet;
@@ -272,12 +261,9 @@ int main (int argc, char *argv[])
                     ipv4InterfacesInternet[i].GetAddress(0) << "@" << internetNodes.Get (i)->GetId() << " => " << ipv4InterfacesInternet[i].GetAddress(1) << "@" << internetNodes.Get (j)->GetId());
   }
 
-  NS_LOG_UNCOND ("> TCP Congestion control algorighm: " << tcpCong);
-  // Config::Set ("/NodeList/*/$ns3::Ns3NscStack<linux2.6.26>/net.ipv4.tcp_congestion_control", StringValue (tcpCong));
-
   PointToPointHelper p2pInternetProvider;
   // create point-to-point link with a bandwidth of 6MBit/s and a large delay (0.5 seconds)
-  p2pInternetProvider.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("1Mbps")));
+  p2pInternetProvider.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("1Gbps")));
   // p2pInternetProvider.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (6 * 1000 * 1000)));
   p2pInternetProvider.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
 
@@ -350,7 +336,7 @@ int main (int argc, char *argv[])
   // Ipv4Address receiverAddr = ipv4InterfacesInternet[0].GetAddress(1);
   // ns3::Ptr<ns3::Node> receiverNode = internetNodes.Get(0);
   // Ipv4Address receiverAddr = ipv4InterfacesStarNetworks[0].GetAddress(0);
-  // ns3::Ptr<ns3::Node> receiverNode = starNetworks[0].GetHub();
+  // ns3::Ptr<ns3::Node> receiverNode = starNetworks[0].GetHub(); 
   // Ipv4Address receiverAddr = starNetworks[0].GetHubIpv4Address(0);
   ns3::Ptr<ns3::Node> receiverNode = starNetworks[1].GetSpokeNode(0);
   Ipv4Address receiverAddr = starNetworks[1].GetSpokeIpv4Address(0);

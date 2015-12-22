@@ -65,11 +65,12 @@ TcpScalable::TcpScalable (const TcpScalable& sock)
 
 TcpScalable::~TcpScalable (void)
 {
-  m_ssThresh = 0x7fffffff; // from tcp.h
+  // m_ssThresh = 0x7fffffff; // from tcp.h
 }
 
 void TcpScalable::SetInitialSSThresh (uint32_t threshold) {
-  m_initialSsThresh = 0x7fffffff;
+  // m_initialSsThresh = 0x7fffffff;
+  TcpSocketBase::SetInitialSSThresh(threshold);
 }
 
 Ptr<TcpSocketBase>
@@ -125,6 +126,8 @@ TcpScalable::NewAck (SequenceNumber32 const& seq)
       NS_LOG_UNCOND ("In CongAvoid, updated to cwnd " << m_cWnd << " ssthresh " << m_ssThresh);
     }
   TcpSocketBase::NewAck (seq);           // Complete newAck processing
+
+  NS_LOG_UNCOND ("CSV, "<< Simulator::Now ().GetSeconds () << ", " << m_cWnd << ", " << m_ssThresh);
 }
 
 /* Cut down ssthresh upon triple dupack */
@@ -166,6 +169,7 @@ TcpScalable::DupAck (const TcpHeader& t, uint32_t count)
       NS_LOG_UNCOND ("Triple Dup Ack: retransmit missing segment at " << Simulator::Now ().GetSeconds ());
       DoRetransmit ();
     }
+  NS_LOG_UNCOND ("CSV, "<< Simulator::Now ().GetSeconds () << ", " << m_cWnd << ", " << m_ssThresh);
 }
 
 /* Retransmit timeout */
@@ -201,6 +205,8 @@ void TcpScalable::Retransmit (void)
   m_cWnd = m_segmentSize;                   // Set cwnd to 1 segSize (RFC2001, sec.2)
   m_nextTxSequence = m_txBuffer->HeadSequence (); // Restart from highest Ack
   DoRetransmit ();                          // Retransmit the packet
+
+  NS_LOG_UNCOND ("CSV, "<< Simulator::Now ().GetSeconds () << ", " << m_cWnd << ", " << m_ssThresh);
 }
 
 } // namespace ns3

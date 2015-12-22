@@ -22,7 +22,7 @@ commands:
     run: bash setup.sh
 
   waf: !Command
-    description: waf
+    description: run any script using waf utility
     container: ns3
     accepts-arguments: true
     work-dir: /work/workspace/ns3-allinone
@@ -40,7 +40,7 @@ commands:
         mv *.xml /work
 
   wnetwork: !Command
-    description: run my simulation from scratch/network.cc
+    description: run my simulation from scratch/network.cc with visualization
     container: ns3
     work-dir: /work/workspace/ns3-allinone
     run: |
