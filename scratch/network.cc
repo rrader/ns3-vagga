@@ -220,11 +220,13 @@ int main (int argc, char *argv[])
   // how long the sender should be running, in seconds.
   unsigned int runtime = 300;
 
+  std::string backgroundRate = "10kbps";
   CommandLine cmd;
   // Here, we define additional command line options.
   // This allows a user to override the defaults set above from the command line.
   cmd.AddValue ("error-rate", "Error rate to apply to link", errRate);
   cmd.AddValue ("runtime", "How long the applications should send data (default 120 seconds)", runtime);
+  cmd.AddValue ("bgRate", "Background traffic rate (default 10kbps)", backgroundRate);
   cmd.Parse (argc, argv);
 
   NS_LOG_UNCOND ("> Create nodes");
@@ -263,7 +265,7 @@ int main (int argc, char *argv[])
 
   PointToPointHelper p2pInternetProvider;
   // create point-to-point link with a bandwidth of 6MBit/s and a large delay (0.5 seconds)
-  p2pInternetProvider.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("1Gbps")));
+  p2pInternetProvider.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("1Mbps")));
   // p2pInternetProvider.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (6 * 1000 * 1000)));
   p2pInternetProvider.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
 
@@ -298,21 +300,27 @@ int main (int argc, char *argv[])
                    " to internet node " << ipv4InterfacesStarNetworks[starId].GetAddress(0) << " @" << internetNodes.Get (i)->GetId());
   }
 
-  for (int i=1; i<internetNodesCount; i+=2) {
-    NodeContainer cloud;
-    cloud.Create (1);
-    internet.Install (cloud);
+
+  NodeContainer cloud1;
+  cloud1.Create (1);
+  NodeContainer cloud2;
+  cloud2.Create (1);
+  NodeContainer cloudNetworks[2] = {cloud1, cloud2};
+  Ipv4InterfaceContainer ipv4InterfacesCloud[2];
+
+  for (int i=1, cloudId=0; i<internetNodesCount; i+=2, cloudId++) {
+    internet.Install (cloudNetworks[cloudId]);
 
     NS_LOG_UNCOND (">> Cloud");
 
-    NodeContainer twoNodes = NodeContainer (internetNodes.Get (i), cloud.Get (0));
+    NodeContainer twoNodes = NodeContainer (internetNodes.Get (i), cloudNetworks[cloudId].Get (0));
     NetDeviceContainer p2pInterfaces = p2pInternetProvider.Install(twoNodes);
     Ipv4AddressHelper ipv4;
     std::string baseIp = SSTR(i + 1) + std::string(".1.0.0");
     ipv4.SetBase (baseIp.c_str(), "255.255.255.0");
-    Ipv4InterfaceContainer ipv4Interfaces = ipv4.Assign (p2pInterfaces);
-    NS_LOG_UNCOND (">>> Connect cloud hub " << ipv4Interfaces.GetAddress(1)  << " @" << cloud.Get (0)->GetId() <<
-                   " to internet node " << ipv4Interfaces.GetAddress(0) << " @" << internetNodes.Get (i)->GetId());
+    ipv4InterfacesCloud[cloudId] = ipv4.Assign (p2pInterfaces);
+    NS_LOG_UNCOND (">>> Connect cloud hub " << ipv4InterfacesCloud[cloudId].GetAddress(1)  << " @" << cloudNetworks[cloudId].Get (0)->GetId() <<
+                   " to internet node " << ipv4InterfacesCloud[cloudId].GetAddress(0) << " @" << internetNodes.Get (i)->GetId());
   }
 
   NS_LOG_UNCOND ("> Setup traffic");
@@ -355,6 +363,30 @@ int main (int argc, char *argv[])
 
 
 
+  ns3::Ptr<ns3::Node> bgReceiverNode = starNetworks[1].GetHub();//cloudNetworks[1].Get(0);
+  Ipv4Address bgReceiverAddr = starNetworks[1].GetHubIpv4Address(0); //ipv4InterfacesCloud[1].GetAddress(0);
+  // ns3::Ptr<ns3::Node> bgReceiverNode2 = starNetworks[1].GetSpokeNode(2);//cloudNetworks[1].Get(0);
+  // Ipv4Address bgReceiverAddr2 = starNetworks[1].GetSpokeIpv4Address(2); //ipv4InterfacesCloud[1].GetAddress(0);
+  // ns3::Ptr<ns3::Node> bgReceiverNode = cloudNetworks[1].Get(0);
+  // Ipv4Address bgReceiverAddr = ipv4InterfacesCloud[1].GetAddress(1);
+
+  // ns3::Ptr<ns3::Node> bgSenderNode = starNetworks[1].GetSpokeNode(2);
+  ns3::Ptr<ns3::Node> bgSenderNode = cloudNetworks[0].Get(0);
+  // ns3::Ptr<ns3::Node> bgSenderNode = internetNodes.Get(1);
+  // Ipv4Address bgSenderAddr = starNetworks[0].GetSpokeIpv4Address(0);
+
+  ApplicationContainer bgSinkApp = sinkHelper.Install (bgReceiverNode);
+  // ApplicationContainer bgSinkApp2 = sinkHelper.Install (bgReceiverNode2);
+  bgSinkApp.Start (Seconds (0.0));
+  bgSinkApp.Stop (Seconds (runtime + 60.0));
+  // bgSinkApp2.Start (Seconds (0.0));
+  // bgSinkApp2.Stop (Seconds (runtime + 60.0));
+  NS_LOG_UNCOND ("Receiver at " << bgReceiverAddr << ":" << servPort << " @" << bgReceiverNode->GetId());
+
+  Address bgRemoteAddress (InetSocketAddress (bgReceiverAddr , servPort));
+  // Address bgRemoteAddress2 (InetSocketAddress (bgReceiverAddr2 , servPort));
+
+
 
 
 
@@ -387,12 +419,38 @@ int main (int argc, char *argv[])
   // app->SetStartTime (Seconds (0.2));
   // app->SetStopTime (Seconds (60.0));
   //-------------
-  BulkSendHelper clientHelper ("ns3::TcpSocketFactory", remoteAddress);
-  clientHelper.SetAttribute ("MaxBytes", UintegerValue (0));
+
+  // BulkSendHelper clientHelper ("ns3::TcpSocketFactory", remoteAddress);
+  // clientHelper.SetAttribute ("MaxBytes", UintegerValue (0));
+  OnOffHelper clientHelper ("ns3::TcpSocketFactory", remoteAddress);
+  clientHelper.SetConstantRate(DataRate ("900kbps"), 512);
   ApplicationContainer clientApp = clientHelper.Install (senderNode);
   clientApp.Start(Seconds(1));
   clientApp.Stop(Seconds(runtime-2));
 
+
+  //noise
+
+  // BulkSendHelper clientHelper ("ns3::TcpSocketFactory", bgRemoteAddress);
+  // clientHelper.SetAttribute ("MaxBytes", UintegerValue (0));
+  // ApplicationContainer clientApp = clientHelper.Install (bgSenderNode);
+  // clientApp.Start(Seconds(1));
+  // clientApp.Stop(Seconds(runtime-2));
+
+  OnOffHelper bgClientHelper ("ns3::TcpSocketFactory", bgRemoteAddress);
+  bgClientHelper.SetConstantRate(DataRate (backgroundRate), 512);
+  // bgClientHelper.SetAttribute ("MaxBytes", UintegerValue (0));
+  ApplicationContainer bgClientApp = bgClientHelper.Install (bgSenderNode);
+  bgClientApp.Start(Seconds(0));
+  bgClientApp.Stop(Seconds(runtime));
+
+
+  // OnOffHelper bgClientHelper2 ("ns3::TcpSocketFactory", bgRemoteAddress2);
+  // bgClientHelper2.SetConstantRate(DataRate (backgroundRate), 512);
+  // // bgClientHelper2.SetAttribute ("MaxBytes", UintegerValue (0));
+  // ApplicationContainer bgClientApp2 = bgClientHelper2.Install (bgSenderNode);
+  // bgClientApp2.Start(Seconds(0));
+  // bgClientApp2.Stop(Seconds(runtime));
 
 
 

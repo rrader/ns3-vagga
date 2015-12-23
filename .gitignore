@@ -5,3 +5,6 @@ workspace
 *.xml
 *.csv
 LOG
+Bulk
+*kbps
+*.list

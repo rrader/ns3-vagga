@@ -127,7 +127,7 @@ TcpScalable::NewAck (SequenceNumber32 const& seq)
     }
   TcpSocketBase::NewAck (seq);           // Complete newAck processing
 
-  NS_LOG_UNCOND ("CSV, "<< Simulator::Now ().GetSeconds () << ", " << m_cWnd << ", " << m_ssThresh);
+  NS_LOG_UNCOND ("CSV," << this << "," << Simulator::Now ().GetSeconds () << "," << m_cWnd << "," << m_ssThresh);
 }
 
 /* Cut down ssthresh upon triple dupack */
@@ -169,7 +169,7 @@ TcpScalable::DupAck (const TcpHeader& t, uint32_t count)
       NS_LOG_UNCOND ("Triple Dup Ack: retransmit missing segment at " << Simulator::Now ().GetSeconds ());
       DoRetransmit ();
     }
-  NS_LOG_UNCOND ("CSV, "<< Simulator::Now ().GetSeconds () << ", " << m_cWnd << ", " << m_ssThresh);
+  NS_LOG_UNCOND ("CSV," << this << "," << Simulator::Now ().GetSeconds () << "," << m_cWnd << "," << m_ssThresh);
 }
 
 /* Retransmit timeout */
@@ -206,7 +206,7 @@ void TcpScalable::Retransmit (void)
   m_nextTxSequence = m_txBuffer->HeadSequence (); // Restart from highest Ack
   DoRetransmit ();                          // Retransmit the packet
 
-  NS_LOG_UNCOND ("CSV, "<< Simulator::Now ().GetSeconds () << ", " << m_cWnd << ", " << m_ssThresh);
+  NS_LOG_UNCOND ("CSV," << this << "," << Simulator::Now ().GetSeconds () << "," << m_cWnd << "," << m_ssThresh);
 }
 
 } // namespace ns3
