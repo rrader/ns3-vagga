@@ -282,6 +282,7 @@ int main (int argc, char *argv[])
 
   Ipv4AddressHelper ipv4StarNetworks[2];
   Ipv4InterfaceContainer ipv4InterfacesStarNetworks[2];
+  NetDeviceContainer starNetDeviceContainer[2];
 
   NS_LOG_UNCOND ("> Create networks");
   for (int i=0, starId=0; i<internetNodesCount; i+=2, starId++) {
@@ -292,10 +293,10 @@ int main (int argc, char *argv[])
     NS_LOG_UNCOND (">> Star of " << nodesInStar << " nodes at " << baseIp << "/24");
 
     NodeContainer twoNodes = NodeContainer (internetNodes.Get (i), starNetworks[starId].GetHub ());
-    NetDeviceContainer p2pInterfaces = p2pInternetProvider.Install(twoNodes);
+    starNetDeviceContainer[starId] = p2pInternetProvider.Install(twoNodes);
     baseIp = SSTR(i + 1) + std::string(".1.0.0");
     ipv4StarNetworks[starId].SetBase (baseIp.c_str(), "255.255.255.0");
-    ipv4InterfacesStarNetworks[starId] = ipv4StarNetworks[starId].Assign (p2pInterfaces);
+    ipv4InterfacesStarNetworks[starId] = ipv4StarNetworks[starId].Assign (starNetDeviceContainer[starId]);
     NS_LOG_UNCOND (">>> Connect star hub " << ipv4InterfacesStarNetworks[starId].GetAddress(1) << " @" << starNetworks[starId].GetHub ()->GetId() <<
                    " to internet node " << ipv4InterfacesStarNetworks[starId].GetAddress(0) << " @" << internetNodes.Get (i)->GetId());
   }
@@ -324,14 +325,6 @@ int main (int argc, char *argv[])
   }
 
   NS_LOG_UNCOND ("> Setup traffic");
-  // DoubleValue rate (errRate);
-  // Ptr<RateErrorModel> em1 = 
-  //   CreateObjectWithAttributes<RateErrorModel> ("RanVar", StringValue ("ns3::UniformRandomVariable[Min=0.0,Max=1.0]"), "ErrorRate", rate);
-  // Ptr<RateErrorModel> em2 = 
-  //   CreateObjectWithAttributes<RateErrorModel> ("RanVar", StringValue ("ns3::UniformRandomVariable[Min=0.0,Max=1.0]"), "ErrorRate", rate);
-
-  // // This enables the specified errRate on both link endpoints.
-  // p2pInterfaces.Get (0)->SetAttribute ("ReceiveErrorModel", PointerValue (em1));
   // p2pInterfaces.Get (1)->SetAttribute ("ReceiveErrorModel", PointerValue (em2));
 
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
@@ -351,6 +344,13 @@ int main (int argc, char *argv[])
 
   ns3::Ptr<ns3::Node> senderNode = starNetworks[0].GetSpokeNode(0);
   Ipv4Address senderAddr = starNetworks[0].GetSpokeIpv4Address(0);
+
+
+  DoubleValue rate (errRate);
+  Ptr<RateErrorModel> em1 = 
+    CreateObjectWithAttributes<RateErrorModel> ("RanVar", StringValue ("ns3::UniformRandomVariable[Min=0.0,Max=1.0]"), "ErrorRate", rate);
+  starNetDeviceContainer[1].Get (1)->SetAttribute ("ReceiveErrorModel", PointerValue (em1));
+
   //============================
 
   ApplicationContainer sinkApp = sinkHelper.Install (receiverNode);
@@ -437,13 +437,14 @@ int main (int argc, char *argv[])
   // clientApp.Start(Seconds(1));
   // clientApp.Stop(Seconds(runtime-2));
 
-  OnOffHelper bgClientHelper ("ns3::TcpSocketFactory", bgRemoteAddress);
-  bgClientHelper.SetConstantRate(DataRate (backgroundRate), 512);
-  // bgClientHelper.SetAttribute ("MaxBytes", UintegerValue (0));
-  ApplicationContainer bgClientApp = bgClientHelper.Install (bgSenderNode);
-  bgClientApp.Start(Seconds(0));
-  bgClientApp.Stop(Seconds(runtime));
-
+// ==========
+  // OnOffHelper bgClientHelper ("ns3::TcpSocketFactory", bgRemoteAddress);
+  // bgClientHelper.SetConstantRate(DataRate (backgroundRate), 512);
+  // // bgClientHelper.SetAttribute ("MaxBytes", UintegerValue (0));
+  // ApplicationContainer bgClientApp = bgClientHelper.Install (bgSenderNode);
+  // bgClientApp.Start(Seconds(0));
+  // bgClientApp.Stop(Seconds(runtime));
+// ==========
 
   // OnOffHelper bgClientHelper2 ("ns3::TcpSocketFactory", bgRemoteAddress2);
   // bgClientHelper2.SetConstantRate(DataRate (backgroundRate), 512);
