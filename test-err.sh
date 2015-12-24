@@ -1,6 +1,6 @@
 rate=100
 
-for rate in `seq 0.0000001 0.000001 0.00001`
+for rate in `seq 0.0000001 0.0000005 0.000005`
 do
     echo ${rate}
     vagga waf --run "scratch/network --error-rate=${rate}" &> LOG

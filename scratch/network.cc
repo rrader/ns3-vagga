@@ -273,7 +273,7 @@ int main (int argc, char *argv[])
   // create point-to-point link with a bandwidth of 6MBit/s and a large delay (0.5 seconds)
   // p2pEndpoint.SetDeviceAttribute ("DataRate", DataRateValue (DataRate (6 * 1000 * 1000)));
   p2pEndpoint.SetDeviceAttribute ("DataRate", DataRateValue (DataRate ("1Mbps")));
-  p2pEndpoint.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
+  p2pEndpoint.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (40)));
 
   const int nodesInStar = 3;
   PointToPointStarHelper star1 = PointToPointStarHelper(nodesInStar, p2pEndpoint);
@@ -346,10 +346,10 @@ int main (int argc, char *argv[])
   Ipv4Address senderAddr = starNetworks[0].GetSpokeIpv4Address(0);
 
 
-  DoubleValue rate (errRate);
-  Ptr<RateErrorModel> em1 = 
-    CreateObjectWithAttributes<RateErrorModel> ("RanVar", StringValue ("ns3::UniformRandomVariable[Min=0.0,Max=1.0]"), "ErrorRate", rate);
-  starNetDeviceContainer[1].Get (1)->SetAttribute ("ReceiveErrorModel", PointerValue (em1));
+  // DoubleValue rate (errRate);
+  // Ptr<RateErrorModel> em1 = 
+  //   CreateObjectWithAttributes<RateErrorModel> ("RanVar", StringValue ("ns3::UniformRandomVariable[Min=0.0,Max=1.0]"), "ErrorRate", rate);
+  // starNetDeviceContainer[1].Get (1)->SetAttribute ("ReceiveErrorModel", PointerValue (em1));
 
   //============================
 
@@ -420,10 +420,10 @@ int main (int argc, char *argv[])
   // app->SetStopTime (Seconds (60.0));
   //-------------
 
-  // BulkSendHelper clientHelper ("ns3::TcpSocketFactory", remoteAddress);
-  // clientHelper.SetAttribute ("MaxBytes", UintegerValue (0));
-  OnOffHelper clientHelper ("ns3::TcpSocketFactory", remoteAddress);
-  clientHelper.SetConstantRate(DataRate ("900kbps"), 512);
+  BulkSendHelper clientHelper ("ns3::TcpSocketFactory", remoteAddress);
+  clientHelper.SetAttribute ("MaxBytes", UintegerValue (0));
+  // OnOffHelper clientHelper ("ns3::TcpSocketFactory", remoteAddress);
+  // clientHelper.SetConstantRate(DataRate ("900kbps"), 512);
   ApplicationContainer clientApp = clientHelper.Install (senderNode);
   clientApp.Start(Seconds(1));
   clientApp.Stop(Seconds(runtime-2));
@@ -438,12 +438,12 @@ int main (int argc, char *argv[])
   // clientApp.Stop(Seconds(runtime-2));
 
 // ==========
-  // OnOffHelper bgClientHelper ("ns3::TcpSocketFactory", bgRemoteAddress);
-  // bgClientHelper.SetConstantRate(DataRate (backgroundRate), 512);
-  // // bgClientHelper.SetAttribute ("MaxBytes", UintegerValue (0));
-  // ApplicationContainer bgClientApp = bgClientHelper.Install (bgSenderNode);
-  // bgClientApp.Start(Seconds(0));
-  // bgClientApp.Stop(Seconds(runtime));
+  OnOffHelper bgClientHelper ("ns3::TcpSocketFactory", bgRemoteAddress);
+  bgClientHelper.SetConstantRate(DataRate (backgroundRate), 512);
+  // bgClientHelper.SetAttribute ("MaxBytes", UintegerValue (0));
+  ApplicationContainer bgClientApp = bgClientHelper.Install (bgSenderNode);
+  bgClientApp.Start(Seconds(0));
+  bgClientApp.Stop(Seconds(runtime));
 // ==========
 
   // OnOffHelper bgClientHelper2 ("ns3::TcpSocketFactory", bgRemoteAddress2);
